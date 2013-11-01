@@ -1,4 +1,5 @@
-motion-ball
+Motion Ball
 ===========
 
-An experimental game using motion detection on the browser, involving a ball
+An experiment where an object on screen is moved based on hand motion detected
+through the web cam.
