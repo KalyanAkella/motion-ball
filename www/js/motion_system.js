@@ -2,8 +2,7 @@ function MotionSystem(_video, _canvasSource, _motionCallback) {
   var video = _video;
   var canvasSource = _canvasSource;
   var contextSource = canvasSource.getContext('2d');
-  var lastImageData = null;
-  var previousWhiteArea = null;
+  var prevImageData = null;
   var motionCallback = _motionCallback;
   contextSource.translate(canvasSource.width, 0);
   contextSource.scale(-1, 1);
@@ -17,10 +16,19 @@ function MotionSystem(_video, _canvasSource, _motionCallback) {
       var width = canvasSource.width;
       var height = canvasSource.height;
       var sourceData = contextSource.getImageData(0, 0, width, height);
-      if (!lastImageData) lastImageData = contextSource.getImageData(0, 0, width, height);
-      var diffs = differenceThreshold(sourceData.data, lastImageData.data);
-      lastImageData = sourceData;
+      if (!prevImageData) prevImageData = contextSource.getImageData(0, 0, width, height);
+      var diffs = diffPixels(sourceData.data, prevImageData.data);
+      prevImageData = sourceData;
       return diffs;
+    }
+
+    function check(blendData) {
+      // TODO: construct the motion object - perhaps a convex hull, bounded rectangle ?
+      var numPoints = blendData.length;
+      if (numPoints > 100) {
+        var motion = {'data': blendData};
+        motionCallback(motion);
+      }
     }
 
     function fastAbs(value) {
@@ -28,36 +36,22 @@ function MotionSystem(_video, _canvasSource, _motionCallback) {
       return (value ^ (value >> 31)) - (value >> 31);
     }
 
-    function threshold(value) {
-      return (value > 21) ? 0xFF : 0;
-    }
-
-    function differenceThreshold(data1, data2) {
+    function diffPixels(data1, data2) {
       if (data1.length != data2.length) return null;
-      var i = 0;
+      var i = 0, limit = data1.length * 0.25;
       var target = [];
-      while (i < (data1.length * 0.25)) {
+      var width = canvasSource.width;
+      while (i < limit) {
         var index = 4 * i++;
         var average1 = (data1[index] + data1[index+1] + data1[index+2]) / 3;
         var average2 = (data2[index] + data2[index+1] + data2[index+2]) / 3;
-        var diff = threshold(fastAbs(average1 - average2));
-        target.push(diff);
+        var diff = fastAbs(average1 - average2);
+        if (diff > 21) {
+          var point = new Point(i % width, Math.ceil(i / width));
+          target.push(point);
+        }
       }
       return target;
-    }
-
-    function check(blendData) {
-      var width = canvasSource.width;
-      var height = canvasSource.height;
-      var whiteArea = 0, i = 0;
-      var limit = blendData.length;
-      while (i < limit) {
-        whiteArea += blendData[i++] & 1;
-      }
-      // TODO: construct the motion object - perhaps a convex hull ?
-      var motion = {};
-      motionCallback(motion);
-      previousWhiteArea = whiteArea;
     }
 
     function update() {
@@ -68,4 +62,9 @@ function MotionSystem(_video, _canvasSource, _motionCallback) {
 
     update();
   };
+}
+
+function Point(x, y) {
+  this.x = x;
+  this.y = y;
 }

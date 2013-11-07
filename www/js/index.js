@@ -21,4 +21,19 @@ function initialise() {
 }
 
 function motionCallback(motion) {
+  var motionBallSource = $("#motion-ball")[0];
+  var motionBallContext = motionBallSource.getContext('2d');
+  var points = motion.data;
+
+  if (points.length == 0) return;
+  motionBallContext.clearRect(0, 0, motionBallSource.width, motionBallSource.height);
+  motionBallContext.beginPath();
+  motionBallContext.lineWidth = "2";
+  motionBallContext.strokeStyle = "red";
+  motionBallContext.moveTo(points[0].x, points[0].y);
+  for (var i = 1; i < points.length; i++) {
+    var point = points[i];
+    motionBallContext.lineTo(point.x, point.y);
+  }
+  motionBallContext.stroke();
 }
